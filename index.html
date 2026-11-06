@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recorridos de viandas CABA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: resumen arriba, mapa + lista de vehículos lado a lado, tabla de colegios al final */
+  --bg:#f4f6f7; --surface:#ffffff; --ink:#15232b; --muted:#5b6b73; --line:#dbe2e5; --accent:#0b6e75;
+  --font-display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body:"Source Sans 3", "Segoe UI", Arial, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f171b;--surface:#172328;--ink:#e3ecef;--muted:#93a5ad;--line:#2a3a41;--accent:#4fc3c9;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f171b;--surface:#172328;--ink:#e3ecef;--muted:#93a5ad;--line:#2a3a41;--accent:#4fc3c9;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--font-body)}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 20px 60px;display:grid;gap:22px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+h1{font-size:30px;font-weight:800;letter-spacing:-.01em}
+h2{font-size:20px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+.sub{color:var(--muted);max-width:70ch;margin:6px 0 0}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{font:600 15px var(--font-body);padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.tab:focus-visible,.vbtn:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi b{display:block;font:800 26px var(--font-display);font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:14px}
+.main{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.mapbox{position:sticky;top:12px}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.vbtn{display:inline-flex;align-items:center;gap:6px;font:600 13px var(--font-body);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.vbtn i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.vbtn[aria-pressed="true"]{border-color:var(--ink)}
+.vlist{display:grid;gap:12px}
+.vcard{border:1px solid var(--line);border-left:5px solid var(--c);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.vcard.dim{opacity:.35}
+.vhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.meta{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.trip{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}
+.trip-h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:600}
+.trip ol{margin:6px 0 4px;padding-left:22px}
+.trip li{margin:2px 0}
+.trip li .q{font-variant-numeric:tabular-nums;font-weight:700}
+.chip{font-size:12px;font-weight:700;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);margin-left:6px}
+a{color:var(--accent)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--font-display);font-size:13px;color:var(--muted);font-weight:700}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.notes{color:var(--muted);font-size:14px;max-width:80ch}
+.notes li{margin:4px 0}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:6px;overflow:hidden}
+.bar>div{height:100%;background:var(--c)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Recorridos de distribución de viandas</h1>
+    <p class="sub">20 colegios de CABA, 2.050 viandas en total, 8 vehículos con salida y recarga en Av. Santa Fe 4320. Elegí la capacidad por vehículo para ver cada escenario.</p>
+  </header>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-100" data-q="100">100 viandas por vehículo</button>
+    <button class="tab" role="tab" id="tab-150" data-q="150">150 viandas por vehículo</button>
+  </div>
+  <section class="kpis" id="kpis"></section>
+  <section class="main">
+    <div class="panel mapbox">
+      <h2>Mapa esquemático</h2>
+      <p class="meta" style="margin:4px 0 8px">Posiciones aproximadas. Tocá un vehículo para ver solo sus recorridos; pasá el cursor por un punto para ver el colegio.</p>
+      <svg id="map" viewBox="0 0 640 560" role="img" aria-label="Mapa de recorridos"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="vlist" id="vlist"></div>
+  </section>
+  <section class="panel">
+    <h2>Entregas por colegio</h2>
+    <div class="tablewrap"><table id="schools"></table></div>
+  </section>
+  <section class="panel notes">
+    <h2 style="color:var(--ink)">Supuestos del cálculo</h2>
+    <ul>
+      <li>Las ubicaciones de los colegios se estimaron a partir de las direcciones; los kilómetros son distancia en línea recta × 1,35 para aproximar el recorrido por calles.</li>
+      <li>Tiempo de cada vuelta: 15 min de carga en la base, 20 km/h de velocidad promedio y 10 min de descarga por colegio. Usalo como referencia relativa entre vehículos.</li>
+      <li>Si un colegio recibe más viandas que la capacidad de un vehículo, la entrega se divide entre varias vueltas o vehículos (marcado como "parcial").</li>
+      <li>Los vehículos vuelven a la base a recargar entre vueltas. El reparto busca menos kilómetros totales y que los 8 terminen a horarios parecidos.</li>
+      <li>"Pedro Lozano 315" parece incompleta (la numeración de esa calle en Villa del Parque es más alta); se ubicó en Villa del Parque. Conviene confirmarla.</li>
+      <li>Los links "Abrir en Google Maps" arman la ruta real por calles con las paradas en orden.</li>
+    </ul>
+  </section>
+</div>
+<script>
+const D={"depot": ["Base - Av. Santa Fe 4320", -34.5797, -58.4262], "res": {"100": [[{"stops": [{"idx": 17, "colegio": "A-0527 Educacional Ceferino Namuncura", "dir": "Pacheco 2059", "viandas": 100, "total": 150, "lat": -34.57, "lon": -58.495}], "carga": 100, "km": 17.3, "min": 77, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Pacheco%202059%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 3, "colegio": "A-0132 Patrocinio De San José", "dir": "Conesa 1846", "viandas": 80, "total": 80, "lat": -34.564, "lon": -58.4588}], "carga": 80, "km": 9.3, "min": 53, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Conesa%201846%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 15, "colegio": "A-0499 San Pablo Apostol", "dir": "Palpa 3480", "viandas": 60, "total": 60, "lat": -34.5772, "lon": -58.456}], "carga": 60, "km": 7.4, "min": 47, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Palpa%203480%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 19, "colegio": "A-0072 San José De Villa Del Parque", "dir": "Pedro Lozano 315", "viandas": 100, "total": 100, "lat": -34.601, "lon": -58.492}], "carga": 100, "km": 17.5, "min": 77, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Pedro%20Lozano%20315%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 9, "colegio": "A-0830 San Cayetano", "dir": "Moldes 1764", "viandas": 80, "total": 80, "lat": -34.5638, "lon": -58.456}], "carga": 80, "km": 8.8, "min": 51, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Moldes%201764%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 2, "colegio": "A-0073 San Miguel", "dir": "Larrea 1254", "viandas": 100, "total": 100, "lat": -34.5948, "lon": -58.4006}], "carga": 100, "km": 7.8, "min": 48, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Larrea%201254%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 20, "colegio": "A-0128 Damasa Zelaya De Saavedra", "dir": "Av. Albarellos 2367", "viandas": 80, "total": 80, "lat": -34.5745, "lon": -58.504}], "carga": 80, "km": 19.3, "min": 83, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Av.%20Albarellos%202367%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 7, "colegio": "A-0452 Nuestra Señora Del Pilar", "dir": "Vicente López 1969", "viandas": 80, "total": 80, "lat": -34.5897, "lon": -58.3926}], "carga": 80, "km": 8.8, "min": 51, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Vicente%20L%C3%B3pez%201969%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 18, "colegio": "A-0596 Resurreccion Del Señor", "dir": "Av. Dorrego 894", "viandas": 60, "total": 60, "lat": -34.5918, "lon": -58.4478}], "carga": 60, "km": 6.5, "min": 44, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Av.%20Dorrego%20894%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 10, "colegio": "A-0235 CEAES", "dir": "Francisco Acuña de Figueroa 1742", "viandas": 20, "total": 120, "lat": -34.5924, "lon": -58.4171}, {"idx": 12, "colegio": "A-0468 Escuela Monsenor Sabelli", "dir": "Víctor Martínez 62", "viandas": 60, "total": 60, "lat": -34.624, "lon": -58.433}], "carga": 80, "km": 14.1, "min": 77, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Francisco%20Acu%C3%B1a%20de%20Figueroa%201742%2C%20CABA/V%C3%ADctor%20Mart%C3%ADnez%2062%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 1, "colegio": "A-0049 Nuestra Señora", "dir": "Esmeralda 759", "viandas": 100, "total": 200, "lat": -34.6003, "lon": -58.3768}], "carga": 100, "km": 13.7, "min": 66, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Esmeralda%20759%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 10, "colegio": "A-0235 CEAES", "dir": "Francisco Acuña de Figueroa 1742", "viandas": 100, "total": 120, "lat": -34.5924, "lon": -58.4171}], "carga": 100, "km": 4.4, "min": 38, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Francisco%20Acu%C3%B1a%20de%20Figueroa%201742%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 8, "colegio": "A-0479 La Salette", "dir": "Roque Pérez 4334", "viandas": 100, "total": 200, "lat": -34.5515, "lon": -58.4885}], "carga": 100, "km": 17.6, "min": 78, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Roque%20P%C3%A9rez%204334%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 5, "colegio": "A-0140 Hijas De Jesús", "dir": "Olazabal 3871", "viandas": 80, "total": 80, "lat": -34.5716, "lon": -58.4716}], "carga": 80, "km": 11.5, "min": 59, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Olazabal%203871%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 11, "colegio": "A-0364 Maria Bianchi De Copello", "dir": "Pacheco de Melo 2455", "viandas": 50, "total": 50, "lat": -34.5899, "lon": -58.404}], "carga": 50, "km": 6.3, "min": 44, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Pacheco%20de%20Melo%202455%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 8, "colegio": "A-0479 La Salette", "dir": "Roque Pérez 4334", "viandas": 100, "total": 200, "lat": -34.5515, "lon": -58.4885}], "carga": 100, "km": 17.6, "min": 78, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Roque%20P%C3%A9rez%204334%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 1, "colegio": "A-0049 Nuestra Señora", "dir": "Esmeralda 759", "viandas": 100, "total": 200, "lat": -34.6003, "lon": -58.3768}], "carga": 100, "km": 13.7, "min": 66, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Esmeralda%20759%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 4, "colegio": "A-0136 Centro Educativo San Francisco Javier", "dir": "Jorge Luis Borges 1883", "viandas": 100, "total": 200, "lat": -34.5884, "lon": -58.4302}], "carga": 100, "km": 2.8, "min": 33, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Jorge%20Luis%20Borges%201883%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 6, "colegio": "A-0183 Parroquial Inmaculada Concepcion", "dir": "Carlos Calvo 1186", "viandas": 100, "total": 100, "lat": -34.6212, "lon": -58.3848}], "carga": 100, "km": 16.1, "min": 73, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Carlos%20Calvo%201186%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 13, "colegio": "A-0480 Nuestra Señora Del Carmen", "dir": "Cullen 5193", "viandas": 100, "total": 150, "lat": -34.576, "lon": -58.489}], "carga": 100, "km": 15.6, "min": 72, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Cullen%205193%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 4, "colegio": "A-0136 Centro Educativo San Francisco Javier", "dir": "Jorge Luis Borges 1883", "viandas": 100, "total": 200, "lat": -34.5884, "lon": -58.4302}], "carga": 100, "km": 2.8, "min": 33, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Jorge%20Luis%20Borges%201883%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 14, "colegio": "A-0487 Juan Santos Gaynor", "dir": "Estomba 1818", "viandas": 60, "total": 60, "lat": -34.579, "lon": -58.466}, {"idx": 16, "colegio": "A-0523 Nuestra Señora De La Anunciacion", "dir": "Barzana 2040", "viandas": 40, "total": 40, "lat": -34.584, "lon": -58.499}], "carga": 100, "km": 18.1, "min": 89, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Estomba%201818%2C%20CABA/Barzana%202040%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 13, "colegio": "A-0480 Nuestra Señora Del Carmen", "dir": "Cullen 5193", "viandas": 50, "total": 150, "lat": -34.576, "lon": -58.489}, {"idx": 17, "colegio": "A-0527 Educacional Ceferino Namuncura", "dir": "Pacheco 2059", "viandas": 50, "total": 150, "lat": -34.57, "lon": -58.495}], "carga": 100, "km": 17.6, "min": 88, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Cullen%205193%2C%20CABA/Pacheco%202059%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}]], "150": [[{"stops": [{"idx": 1, "colegio": "A-0049 Nuestra Señora", "dir": "Esmeralda 759", "viandas": 50, "total": 200, "lat": -34.6003, "lon": -58.3768}, {"idx": 6, "colegio": "A-0183 Parroquial Inmaculada Concepcion", "dir": "Carlos Calvo 1186", "viandas": 100, "total": 100, "lat": -34.6212, "lon": -58.3848}], "carga": 150, "km": 18.2, "min": 90, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Esmeralda%20759%2C%20CABA/Carlos%20Calvo%201186%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 10, "colegio": "A-0235 CEAES", "dir": "Francisco Acuña de Figueroa 1742", "viandas": 120, "total": 120, "lat": -34.5924, "lon": -58.4171}], "carga": 120, "km": 4.4, "min": 38, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Francisco%20Acu%C3%B1a%20de%20Figueroa%201742%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 16, "colegio": "A-0523 Nuestra Señora De La Anunciacion", "dir": "Barzana 2040", "viandas": 40, "total": 40, "lat": -34.584, "lon": -58.499}, {"idx": 19, "colegio": "A-0072 San José De Villa Del Parque", "dir": "Pedro Lozano 315", "viandas": 100, "total": 100, "lat": -34.601, "lon": -58.492}], "carga": 140, "km": 20.5, "min": 96, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Barzana%202040%2C%20CABA/Pedro%20Lozano%20315%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 4, "colegio": "A-0136 Centro Educativo San Francisco Javier", "dir": "Jorge Luis Borges 1883", "viandas": 150, "total": 200, "lat": -34.5884, "lon": -58.4302}], "carga": 150, "km": 2.8, "min": 33, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Jorge%20Luis%20Borges%201883%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 8, "colegio": "A-0479 La Salette", "dir": "Roque Pérez 4334", "viandas": 50, "total": 200, "lat": -34.5515, "lon": -58.4885}, {"idx": 20, "colegio": "A-0128 Damasa Zelaya De Saavedra", "dir": "Av. Albarellos 2367", "viandas": 80, "total": 80, "lat": -34.5745, "lon": -58.504}], "carga": 130, "km": 22.4, "min": 102, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Roque%20P%C3%A9rez%204334%2C%20CABA/Av.%20Albarellos%202367%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 12, "colegio": "A-0468 Escuela Monsenor Sabelli", "dir": "Víctor Martínez 62", "viandas": 60, "total": 60, "lat": -34.624, "lon": -58.433}, {"idx": 18, "colegio": "A-0596 Resurreccion Del Señor", "dir": "Av. Dorrego 894", "viandas": 60, "total": 60, "lat": -34.5918, "lon": -58.4478}], "carga": 120, "km": 15.1, "min": 80, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/V%C3%ADctor%20Mart%C3%ADnez%2062%2C%20CABA/Av.%20Dorrego%20894%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 9, "colegio": "A-0830 San Cayetano", "dir": "Moldes 1764", "viandas": 80, "total": 80, "lat": -34.5638, "lon": -58.456}], "carga": 80, "km": 8.8, "min": 51, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Moldes%201764%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 8, "colegio": "A-0479 La Salette", "dir": "Roque Pérez 4334", "viandas": 150, "total": 200, "lat": -34.5515, "lon": -58.4885}], "carga": 150, "km": 17.6, "min": 78, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Roque%20P%C3%A9rez%204334%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 7, "colegio": "A-0452 Nuestra Señora Del Pilar", "dir": "Vicente López 1969", "viandas": 80, "total": 80, "lat": -34.5897, "lon": -58.3926}, {"idx": 11, "colegio": "A-0364 Maria Bianchi De Copello", "dir": "Pacheco de Melo 2455", "viandas": 50, "total": 50, "lat": -34.5899, "lon": -58.404}], "carga": 130, "km": 9.0, "min": 62, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Vicente%20L%C3%B3pez%201969%2C%20CABA/Pacheco%20de%20Melo%202455%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 17, "colegio": "A-0527 Educacional Ceferino Namuncura", "dir": "Pacheco 2059", "viandas": 150, "total": 150, "lat": -34.57, "lon": -58.495}], "carga": 150, "km": 17.3, "min": 77, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Pacheco%202059%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 2, "colegio": "A-0073 San Miguel", "dir": "Larrea 1254", "viandas": 100, "total": 100, "lat": -34.5948, "lon": -58.4006}, {"idx": 4, "colegio": "A-0136 Centro Educativo San Francisco Javier", "dir": "Jorge Luis Borges 1883", "viandas": 50, "total": 200, "lat": -34.5884, "lon": -58.4302}], "carga": 150, "km": 9.1, "min": 62, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Larrea%201254%2C%20CABA/Jorge%20Luis%20Borges%201883%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 13, "colegio": "A-0480 Nuestra Señora Del Carmen", "dir": "Cullen 5193", "viandas": 150, "total": 150, "lat": -34.576, "lon": -58.489}], "carga": 150, "km": 15.6, "min": 72, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Cullen%205193%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 1, "colegio": "A-0049 Nuestra Señora", "dir": "Esmeralda 759", "viandas": 150, "total": 200, "lat": -34.6003, "lon": -58.3768}], "carga": 150, "km": 13.7, "min": 66, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Esmeralda%20759%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}], [{"stops": [{"idx": 5, "colegio": "A-0140 Hijas De Jesús", "dir": "Olazabal 3871", "viandas": 80, "total": 80, "lat": -34.5716, "lon": -58.4716}, {"idx": 14, "colegio": "A-0487 Juan Santos Gaynor", "dir": "Estomba 1818", "viandas": 60, "total": 60, "lat": -34.579, "lon": -58.466}], "carga": 140, "km": 12.0, "min": 71, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Olazabal%203871%2C%20CABA/Estomba%201818%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}, {"stops": [{"idx": 3, "colegio": "A-0132 Patrocinio De San José", "dir": "Conesa 1846", "viandas": 80, "total": 80, "lat": -34.564, "lon": -58.4588}, {"idx": 15, "colegio": "A-0499 San Pablo Apostol", "dir": "Palpa 3480", "viandas": 60, "total": 60, "lat": -34.5772, "lon": -58.456}], "carga": 140, "km": 10.4, "min": 66, "gmaps": "https://www.google.com/maps/dir/Av.%20Santa%20Fe%204320%2C%20CABA/Conesa%201846%2C%20CABA/Palpa%203480%2C%20CABA/Av.%20Santa%20Fe%204320%2C%20CABA"}]]}, "params": {"SPEED": 20.0, "ROAD": 1.35, "STOP_MIN": 10, "LOAD_MIN": 15}};
+const COLORS=["#0b6e75","#d1495b","#edae49","#3d5a80","#7b9e3e","#8e5ea2","#e07a2f","#2a9d8f"];
+let Q="100", sel=null;
+const fmtMin=m=>{const h=Math.floor(m/60),r=Math.round(m%60);return h?`${h} h ${String(r).padStart(2,"0")} min`:`${r} min`};
+const nf=new Intl.NumberFormat("es-AR",{maximumFractionDigits:1});
+// projection
+const all=[];Object.values(D.res).forEach(vs=>vs.forEach(v=>v.forEach(t=>t.stops.forEach(s=>all.push(s)))));
+const lats=all.map(s=>s.lat).concat(D.depot[1]),lons=all.map(s=>s.lon).concat(D.depot[2]);
+const la0=Math.min(...lats),la1=Math.max(...lats),lo0=Math.min(...lons),lo1=Math.max(...lons);
+const kx=Math.cos(34.59*Math.PI/180);const W=640,H=560,P=46;
+const sc=Math.min((W-2*P)/((lo1-lo0)*kx),(H-2*P)/(la1-la0));
+const ox=(W-(lo1-lo0)*kx*sc)/2,oy=(H-(la1-la0)*sc)/2;
+const prj=(la,lo)=>[ox+(lo-lo0)*kx*sc, oy+(la1-la)*sc];
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function render(){
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.q===Q));
+  const V=D.res[Q];
+  const trips=V.flat(), km=trips.reduce((a,t)=>a+t.km,0);
+  const ends=V.map(v=>v.reduce((a,t)=>a+t.min,0));
+  document.getElementById("kpis").innerHTML=[
+    [trips.length,"vueltas en total"],[nf.format(km)+" km","recorrido total estimado"],
+    [fmtMin(Math.max(...ends)),"hasta que termina el último vehículo"],[nf.format(2050/trips.length*1)+"", "viandas promedio por vuelta"]
+  ].map(([b,s])=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
+  // map
+  const [dx,dy]=prj(D.depot[1],D.depot[2]);
+  let g="";
+  const pts={};
+  V.forEach((v,k)=>v.forEach(t=>{
+    const seq=[[dx,dy]].concat(t.stops.map(s=>prj(s.lat,s.lon))).concat([[dx,dy]]);
+    const op=sel===null||sel===k?0.85:0.08;
+    g+=`<polyline points="${seq.map(p=>p.join(",")).join(" ")}" fill="none" stroke="${COLORS[k]}" stroke-width="${sel===k?3.5:2.2}" stroke-opacity="${op}" stroke-linejoin="round"/>`;
+    t.stops.forEach(s=>{pts[s.idx]=s});
+  }));
+  const placed=[];
+  Object.values(pts).sort((a,b)=>b.total-a.total).forEach(s=>{const [x,y]=prj(s.lat,s.lon);const r=4+Math.sqrt(s.total)/2.2;
+    const left=x>W*0.62, lab=`${s.dir} (${s.total})`, w=lab.length*5.6;
+    const bx0=left?x-r-3-w:x+r+3, by=y+4;
+    const hit=placed.some(p=>Math.abs(p.y-by)<12&&bx0<p.x1&&bx0+w>p.x0);
+    g+=`<circle cx="${x}" cy="${y}" r="${r}" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"><title>${esc(s.colegio)}, ${esc(lab)}</title></circle>`;
+    if(!hit){placed.push({x0:bx0,x1:bx0+w,y:by});g+=`<text x="${left?x-r-3:x+r+3}" y="${by}" text-anchor="${left?"end":"start"}" font-size="11" fill="var(--muted)" font-family="Source Sans 3, Arial">${esc(lab)}</text>`}});
+  g+=`<rect x="${dx-9}" y="${dy-9}" width="18" height="18" rx="3" fill="var(--ink)"/><text x="${dx+13}" y="${dy-10}" font-size="12" font-weight="700" fill="var(--ink)" font-family="Archivo, Arial">Base Santa Fe 4320</text>`;
+  g+=`<text x="${W-12}" y="${H-12}" text-anchor="end" font-size="11" fill="var(--muted)">N ↑ · círculo = viandas del colegio</text>`;
+  document.getElementById("map").innerHTML=g;
+  document.getElementById("legend").innerHTML=`<button class="vbtn" aria-pressed="${sel===null}" data-v="all">Todos</button>`+V.map((v,k)=>`<button class="vbtn" aria-pressed="${sel===k}" data-v="${k}"><i style="background:${COLORS[k]}"></i>Vehículo ${k+1}</button>`).join("");
+  // vehicles
+  const maxEnd=Math.max(...ends);
+  document.getElementById("vlist").innerHTML=V.map((v,k)=>{
+    const vk=v.reduce((a,t)=>a+t.km,0),vv=v.reduce((a,t)=>a+t.carga,0);
+    return `<article class="vcard ${sel!==null&&sel!==k?"dim":""}" style="--c:${COLORS[k]}">
+      <div class="vhead"><h3>Vehículo ${k+1}</h3><span class="meta">${v.length} ${v.length>1?"vueltas":"vuelta"} · ${vv} viandas · ${nf.format(vk)} km · ${fmtMin(ends[k])}</span></div>
+      <div class="bar" title="Duración relativa"><div style="width:${ends[k]/maxEnd*100}%"></div></div>
+      ${v.map((t,i)=>`<div class="trip"><div class="trip-h"><span>Vuelta ${i+1}: carga ${t.carga} viandas</span><span class="meta">${nf.format(t.km)} km · ${fmtMin(t.min)}</span></div>
+        <ol>${t.stops.map(s=>`<li>${esc(s.colegio)}, ${esc(s.dir)}: <span class="q">${s.viandas}</span>${s.viandas<s.total?`<span class="chip">parcial de ${s.total}</span>`:""}</li>`).join("")}</ol>
+        <a href="${t.gmaps}" target="_blank" rel="noopener">Abrir en Google Maps</a></div>`).join("")}
+    </article>`}).join("");
+  // schools table
+  const bySchool={};
+  V.forEach((v,k)=>v.forEach((t,i)=>t.stops.forEach(s=>{(bySchool[s.idx]??={s,parts:[]}).parts.push(`Vehículo ${k+1}, vuelta ${i+1}: ${s.viandas}`)})));
+  document.getElementById("schools").innerHTML=`<thead><tr><th>Colegio</th><th>Dirección</th><th style="text-align:right">Viandas</th><th>Quién entrega</th></tr></thead><tbody>`+
+    Object.values(bySchool).sort((a,b)=>a.s.idx-b.s.idx).map(o=>`<tr><td>${esc(o.s.colegio)}</td><td>${esc(o.s.dir)}</td><td class="n">${o.s.total}</td><td>${o.parts.join("<br>")}</td></tr>`).join("")+`</tbody>`;
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{Q=b.dataset.q;sel=null;try{location.hash="escenario-"+Q}catch(e){};render()});
+document.getElementById("legend").addEventListener("click",e=>{const b=e.target.closest(".vbtn");if(!b)return;sel=b.dataset.v==="all"?null:(sel===+b.dataset.v?null:+b.dataset.v);render()});
+function fromHash(){const m=location.hash.match(/escenario-(100|150)/);if(m)Q=m[1]}
+window.addEventListener("hashchange",()=>{fromHash();render()});
+fromHash();render();
+</script>
+</body>
+</html>
